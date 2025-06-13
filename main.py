@@ -162,20 +162,22 @@ def render_frame_buffer(columns, width, height, trail_length, char_sets, active_
     return frame_buffer
 
 
-def run_animation_loop(args, width, height, char_sets, colors, columns):
+def run_animation_loop(args, width, height, char_sets, classic_colors_param, extended_colors_param, columns_param):
     """Runs the main animation loop."""
     # Determine which color set to use based on the theme
-    active_colors_dict = extended_colors if args.theme == "colorful" else classic_colors
+    active_colors_dict = extended_colors_param if args.theme == "colorful" else classic_colors_param
 
     MIN_EFFECTIVE_SLEEP = 0.005 # Minimum sleep time for potentially better consistency
 
     while True:
-        columns = update_column_states(
-            columns, width, height, args.density, args.trail_length, len(char_sets)
+        current_columns = update_column_states(
+            columns_param, width, height, args.density, args.trail_length, len(char_sets)
         )
         frame_buffer = render_frame_buffer(
-            columns, width, height, args.trail_length, char_sets, active_colors_dict, args.color_intensity, args.theme
+            current_columns, width, height, args.trail_length, char_sets, active_colors_dict, args.color_intensity, args.theme
         )
+        # Update columns_param for the next iteration if update_column_states returns a new list/object
+        columns_param = current_columns
         sys.stdout.write("\033[H" + "\n".join(frame_buffer) + active_colors_dict["RESET"])
         sys.stdout.flush()
 
