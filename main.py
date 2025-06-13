@@ -43,6 +43,24 @@ def parse_arguments():
         choices=["classic", "colorful"],
         help="Color theme for the animation. Choices: classic, colorful. Default: classic",
     )
+    parser.add_argument(
+        "--bright-length",
+        type=int,
+        default=2,
+        help="Length of the 'bright' segment of the trail, following the head (not including the head). Default: 2"
+    )
+    parser.add_argument(
+        "--glitch-rate",
+        type=float,
+        default=0.0,
+        help="Probability (0.0 to 1.0) of a character glitching per frame. Default: 0.0 (no glitches)"
+    )
+    parser.add_argument(
+        "--base-colors",
+        type=str,
+        default="",
+        help="Comma-separated list of base color names (e.g., 'BLUE,GREEN,CYAN') to use ONLY for the 'colorful' theme. If empty, all available colors will be used. Invalid names are ignored."
+    )
     args = parser.parse_args()
 
     if not (0 < args.speed):
@@ -54,6 +72,23 @@ def parse_arguments():
     if not (2 < args.trail_length):
         print("Error: Trail length must be greater than 2.")
         return None
+
+    if args.bright_length < 0:
+        print("Error: Bright length cannot be negative.")
+        return None # Indicates validation failure
+
+    # Trail length must be able to accommodate the head (1 char), the bright segment,
+    # and at least one dim character.
+    # So, trail_length >= bright_length (segment after head) + 1 (head) + 1 (minimum dim character)
+    # Which means trail_length >= bright_length + 2
+    if args.trail_length < args.bright_length + 2:
+        print(f"Error: Trail length ({args.trail_length}) must be at least bright length ({args.bright_length}) + 2 to accommodate head, bright segment, and at least one dim character.")
+        return None # Indicates validation failure
+
+    if not (0.0 <= args.glitch_rate <= 1.0):
+        print("Error: Glitch rate must be between 0.0 and 1.0 inclusive.")
+        return None # Indicates validation failure
+
     return args
 
 
@@ -93,7 +128,46 @@ def initialize_animation_parameters(width, height, args):
     }
     # Each column stores (y_position, char_set_index)
     columns = [(0, random.randrange(len(chars))) for _ in range(width)]
-    return chars, classic_colors, extended_colors, columns
+
+    final_theme_colors = {}
+    if args.theme == "classic":
+        final_theme_colors = classic_colors.copy() # Use a copy
+    elif args.theme == "colorful":
+        final_theme_colors = {"RESET": extended_colors.get("RESET", "\033[0m")}
+        if "WHITE" in extended_colors:
+             final_theme_colors["WHITE"] = extended_colors["WHITE"]
+
+        user_specified_color_names = []
+        if args.base_colors: # If user provided any string for --base-colors
+            user_specified_color_names = [name.strip().upper() for name in args.base_colors.split(',') if name.strip()]
+
+        selected_user_colors_count = 0
+        if user_specified_color_names: # If there are actual names to process
+            for name in user_specified_color_names:
+                if name in extended_colors and "BRIGHT_" not in name and name not in ["WHITE", "RESET"]:
+                    final_theme_colors[name] = extended_colors[name]
+                    bright_name = f"BRIGHT_{name}"
+                    if bright_name in extended_colors:
+                        final_theme_colors[bright_name] = extended_colors[bright_name]
+                    selected_user_colors_count += 1
+                elif name: # Non-empty but invalid/unsuitable name
+                    print(f"Warning: Invalid base color name '{name}' in --base-colors, or it's not a suitable base color type. Ignoring.")
+
+            if selected_user_colors_count == 0: # User specified names, but none were valid base colors
+                print("Warning: No valid base colors from --base-colors were found. Using default full 'colorful' palette.")
+                final_theme_colors = extended_colors.copy()
+        else: # No base colors specified by user (args.base_colors was empty)
+            final_theme_colors = extended_colors.copy()
+
+        # Fallback: Ensure at least one usable base color is in the colorful palette
+        current_base_colors_in_palette = [k for k in final_theme_colors if "BRIGHT_" not in k and k not in ["WHITE", "RESET"]]
+        if not current_base_colors_in_palette:
+            print("Warning: The 'colorful' palette ended up with no usable base colors for trails. Adding GREEN as a fallback.")
+            if "GREEN" in extended_colors: final_theme_colors["GREEN"] = extended_colors["GREEN"]
+            if "BRIGHT_GREEN" in extended_colors: final_theme_colors["BRIGHT_GREEN"] = extended_colors["BRIGHT_GREEN"]
+            # If GREEN itself isn't in extended_colors, this is a deeper setup issue.
+
+    return chars, final_theme_colors, columns
 
 
 def update_column_states(columns, width, height, density, trail_length, num_char_sets):
@@ -114,7 +188,7 @@ def update_column_states(columns, width, height, density, trail_length, num_char
     return columns
 
 
-def render_frame_buffer(columns, width, height, trail_length, char_sets, active_colors, color_intensity="normal", theme="classic"):
+def render_frame_buffer(columns, width, height, char_sets, active_colors, args):
     """Renders the current frame into a buffer."""
     frame_buffer = []
     for y in range(1, height + 1):
@@ -122,31 +196,49 @@ def render_frame_buffer(columns, width, height, trail_length, char_sets, active_
         for x in range(width):
             trail_head_y, char_set_index = columns[x]
             current_char_set = char_sets[char_set_index]
-            if trail_head_y > 0 and trail_head_y - trail_length < y <= trail_head_y:
+            if trail_head_y > 0 and trail_head_y - args.trail_length < y <= trail_head_y:
                 distance_from_head = trail_head_y - y
-                char = random.choice(current_char_set)
+
+                original_char = random.choice(current_char_set)
 
                 # Ensure character has a display width of 1, otherwise replace with space
-                if wcwidth.wcwidth(char) != 1:
-                    char = " "
+                if wcwidth.wcwidth(original_char) != 1:
+                    original_char = " " # Use space if original char is not single-width
+
+                char_to_render = original_char # Default to original
+
+                if args.glitch_rate > 0 and random.random() < args.glitch_rate:
+                    # Attempt to pick a new glitched character from the same character set
+                    glitch_candidate = random.choice(current_char_set)
+                    if wcwidth.wcwidth(glitch_candidate) == 1:
+                        char_to_render = glitch_candidate
+                    # If the glitch_candidate is not single-width, char_to_render remains original_char
 
                 base_color_name = "GREEN" # Default for classic theme
-                if theme == "colorful":
-                    color_names = list(active_colors.keys())
-                    available_base_colors = [name for name in color_names if "BRIGHT_" not in name and name not in ["WHITE", "RESET"]]
+                if args.theme == "colorful":
+                    available_base_colors = [
+                        name for name in active_colors
+                        if "BRIGHT_" not in name and name not in ["WHITE", "RESET"]
+                    ]
+                    # This check should ideally not be needed if initialize_animation_parameters guarantees a valid palette
                     if not available_base_colors:
-                        available_base_colors = ["GREEN"] # Fallback
-                    base_color_name = random.choice(available_base_colors)
+                        # This is a safety net.
+                        # print("Critical Warning: No base colors in active_colors for render_frame_buffer. Defaulting to GREEN.")
+                        base_color_name = "GREEN" # Fallback name
+                        # To make this truly safe, we'd need to ensure active_colors[base_color_name] is valid.
+                        # However, initialize_animation_parameters is supposed to ensure 'GREEN' is added if this list would be empty.
+                    else:
+                        base_color_name = random.choice(available_base_colors)
 
                 bright_variant_key = f"BRIGHT_{base_color_name}"
                 bright_variant_exists = bright_variant_key in active_colors
 
                 # Define colors based on intensity and theme
-                if color_intensity == "dim":
+                if args.color_intensity == "dim":
                     c_head = active_colors[bright_variant_key] if bright_variant_exists else active_colors[base_color_name]
                     c_seg1 = active_colors[base_color_name]
                     c_seg2 = active_colors[base_color_name]
-                elif color_intensity == "bright":
+                elif args.color_intensity == "bright":
                     c_head = active_colors["WHITE"]
                     c_seg1 = active_colors["WHITE"]
                     c_seg2 = active_colors[bright_variant_key] if bright_variant_exists else active_colors["WHITE"]
@@ -156,21 +248,20 @@ def render_frame_buffer(columns, width, height, trail_length, char_sets, active_
                     c_seg2 = active_colors[base_color_name]
 
                 if distance_from_head == 0: # Head of the trail
-                    char_list.append(f"{c_head}{char}")
-                elif distance_from_head <= 2: # Segment immediately following the head
-                    char_list.append(f"{c_seg1}{char}")
-                else: # Rest of the trail
-                    char_list.append(f"{c_seg2}{char}")
+                    char_list.append(f"{c_head}{char_to_render}")
+                elif distance_from_head <= args.bright_length: # Bright part, uses c_seg1
+                    char_list.append(f"{c_seg1}{char_to_render}")
+                else: # Dim part, uses c_seg2
+                    char_list.append(f"{c_seg2}{char_to_render}")
             else:
                 char_list.append(" ")
         frame_buffer.append("".join(char_list))
     return frame_buffer
 
 
-def run_animation_loop(args, width, height, char_sets, classic_colors_param, extended_colors_param, columns_param):
+def run_animation_loop(args, width, height, char_sets, columns_param, active_theme_colors_param):
     """Runs the main animation loop."""
-    # Determine which color set to use based on the theme
-    active_colors_dict = extended_colors_param if args.theme == "colorful" else classic_colors_param
+    active_colors_dict = active_theme_colors_param
 
     MIN_EFFECTIVE_SLEEP = 0.005 # Minimum sleep time for potentially better consistency
 
@@ -179,7 +270,7 @@ def run_animation_loop(args, width, height, char_sets, classic_colors_param, ext
             columns_param, width, height, args.density, args.trail_length, len(char_sets)
         )
         frame_buffer = render_frame_buffer(
-            current_columns, width, height, args.trail_length, char_sets, active_colors_dict, args.color_intensity, args.theme
+            current_columns, width, height, char_sets, active_colors_dict, args
         )
         # Update columns_param for the next iteration if update_column_states returns a new list/object
         columns_param = current_columns
@@ -194,13 +285,14 @@ if __name__ == "__main__":
     args = parse_arguments()
     if args:
         width, height = get_terminal_dimensions(args)
-        chars, classic_colors, extended_colors, columns = initialize_animation_parameters(width, height, args)
+        chars, active_theme_colors, columns = initialize_animation_parameters(width, height, args)
         try:
             # Hide cursor
             sys.stdout.write("\033[?25l")
             # Pass all color sets to the loop, it will select based on theme
-            run_animation_loop(args, width, height, chars, classic_colors, extended_colors, columns)
+            run_animation_loop(args, width, height, chars, columns, active_theme_colors)
         except KeyboardInterrupt:
-            # Show cursor and reset color (use classic_colors for reset as it's simpler)
-            sys.stdout.write("\033[?25h" + classic_colors["RESET"])
+            # Show cursor and reset color
+            reset_color = active_theme_colors.get("RESET", "\033[0m")
+            sys.stdout.write("\033[?25h" + reset_color)
             print("\nAnimation stopped.")

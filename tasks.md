@@ -192,10 +192,12 @@ This document outlines specific tasks to improve and enhance the Python-based co
     4.  **Use in Rendering:** In `render_frame_buffer()`, use these dynamically generated color variables instead of the hardcoded `WHITE`, `BRIGHT_GREEN`, `GREEN`.
     5.  **Update `AnsiColors` Enum (Optional):** If using the Enum from task 1.2, you might not store these dynamic user colors directly in the Enum (as Enums are typically static). Instead, the Enum could hold default/fallback values, and the actual colors used for rendering would be chosen based on CLI args, potentially overriding Enum defaults. Or, the Enum is simply used for `RESET`. A dictionary mapping e.g. `'head': HEAD_COLOR` might be more practical for user-defined themes.
 *   **Expected Outcome:** Users can customize the rain's color scheme, for example, to create blue rain or red rain.
+*   **Update:** The `--base-colors` argument has been implemented, allowing users to specify a list of base colors (e.g., "BLUE,MAGENTA") for the `colorful` theme. This partially addresses the goal of custom color themes. The specific arguments `--color-head`, `--color-bright`, `--color-dim` for arbitrary ANSI codes are not yet implemented.
 
 ### 4.2. Adjustable Trail/Fade Dynamics (Bright Part Length)
 *   **Objective:** Allow users to configure the length of the "bright" segment of the fading trail.
 *   **Current State:** The bright part is fixed at 2 characters after the head.
+*   **Status: COMPLETED** (Implemented via `--bright-length` argument)
 *   **Instructions:**
     1.  **Add `argparse` Argument:** In `parse_arguments()`:
         ```python
@@ -238,6 +240,7 @@ This document outlines specific tasks to improve and enhance the Python-based co
 ### 4.3. "Glitch" Effects (via CLI)
 *   **Objective:** Introduce an optional feature where characters in a trail might randomly change for a single frame.
 *   **Current State:** No glitch effect.
+*   **Status: COMPLETED** (Implemented via `--glitch-rate` argument)
 *   **Instructions:**
     1.  **Add `argparse` Argument:** In `parse_arguments()`:
         ```python
