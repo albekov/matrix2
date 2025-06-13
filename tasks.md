@@ -65,6 +65,7 @@ This document outlines specific tasks to improve and enhance the Python-based co
         *   `RESET` becomes `AnsiColors.RESET.value`.
     3.  **Pass or Access Enum:** Ensure the enum is accessible where needed, likely by passing `AnsiColors` or specific members to functions like `render_frame_buffer()`. If color themes are added, an instance of this Enum or a dictionary derived from it might be passed.
 *   **Expected Outcome:** Color definitions are centralized, more descriptive, and easier to manage or expand for themes.
+*   **Status: COMPLETED**
 
 ### 1.3. Configurable Character Set (via CLI)
 *   **Objective:** Allow users to specify the characters used in the animation via a command-line argument.
@@ -152,6 +153,7 @@ This document outlines specific tasks to improve and enhance the Python-based co
         *   If neither `args.width` nor `args.height` is set, then attempt `os.get_terminal_size()`.
         *   If `os.get_terminal_size()` fails and no CLI override is given, then fall back to defaults (e.g., 80x24) and print a warning.
 *   **Expected Outcome:** Users whose systems have trouble with `os.get_terminal_size()` can manually specify dimensions, making the script more usable in varied environments.
+*   **Status: COMPLETED**
 
 ### 3.2. Input Validation (General Principle)
 *   **Objective:** Ensure all new user-configurable parameters have robust validation.
