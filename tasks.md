@@ -65,6 +65,7 @@ This document outlines specific tasks to improve and enhance the Python-based co
         *   `RESET` becomes `AnsiColors.RESET.value`.
     3.  **Pass or Access Enum:** Ensure the enum is accessible where needed, likely by passing `AnsiColors` or specific members to functions like `render_frame_buffer()`. If color themes are added, an instance of this Enum or a dictionary derived from it might be passed.
 *   **Expected Outcome:** Color definitions are centralized, more descriptive, and easier to manage or expand for themes.
+*   **Status: COMPLETED**
 
 ### 1.3. Configurable Character Set (via CLI)
 *   **Objective:** Allow users to specify the characters used in the animation via a command-line argument.
