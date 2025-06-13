@@ -3,6 +3,7 @@ import os
 import random
 import sys
 import time
+import wcwidth
 
 
 def parse_arguments():
@@ -69,10 +70,9 @@ def get_terminal_dimensions(args):
 def initialize_animation_parameters(width, height, args):
     """Initializes characters, colors, and column states."""
     chars_latin = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()"
-    # Temporarily commenting out other char sets for debugging
-    # chars_katakana = "ァアィイゥウェエォオカガキギクグケゲコゴサザシジスズセゼソゾタダチヂッツヅテデトドナニヌネノハバパヒビピフブプヘベペホボポマミムメモャヤュユョヨラリルレロヮワヰヱヲンヴヵヶ"
-    # chars_symbols = "←↑→↓↔↕↖↗↘↙↚↛↜↝↞↟↠↡↢↣↤↥↦↧↨↩↪↫↬↭↮↯↰↱↲↳↴↵↶↷↸↹↺↻↼↽↾↿⇀⇁⇂⇃⇄⇅⇆⇇⇈⇉⇊⇋⇌⇍⇎⇏⇐⇑⇒⇓⇔⇕⇖⇗⇘⇙⇚⇛⇜⇝⇞⇟⇠⇡⇢⇣⇤⇥⇦⇧⇨⇩⇪"
-    chars = [chars_latin] # Using only latin characters for debugging
+    chars_katakana = "ァアィイゥウェエォオカガキギクグケゲコゴサザシジスズセゼソゾタダチヂッツヅテデトドナニヌネノハバパヒビピフブプヘベペホボポマミムメモャヤュユョヨラリルレロヮワヰヱヲンヴヵヶ"
+    chars_symbols = "←↑→↓↔↕↖↗↘↙↚↛↜↝↞↟↠↡↢↣↤↥↦↧↨↩↪↫↬↭↮↯↰↱↲↳↴↵↶↷↸↹↺↻↼↽↾↿⇀⇁⇂⇃⇄⇅⇆⇇⇈⇉⇊⇋⇌⇍⇎⇏⇐⇑⇒⇓⇔⇕⇖⇗⇘⇙⇚⇛⇜⇝⇞⇟⇠⇡⇢⇣⇤⇥⇦⇧⇨⇩⇪"
+    chars = [chars_latin, chars_katakana, chars_symbols]
 
     classic_colors = {
         "WHITE": "\033[97m",
@@ -125,6 +125,10 @@ def render_frame_buffer(columns, width, height, trail_length, char_sets, active_
             if trail_head_y > 0 and trail_head_y - trail_length < y <= trail_head_y:
                 distance_from_head = trail_head_y - y
                 char = random.choice(current_char_set)
+
+                # Ensure character has a display width of 1, otherwise replace with space
+                if wcwidth.wcwidth(char) != 1:
+                    char = " "
 
                 base_color_name = "GREEN" # Default for classic theme
                 if theme == "colorful":

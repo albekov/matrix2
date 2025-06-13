@@ -10,10 +10,20 @@ This Python script creates a Matrix-like digital rain animation in your console.
 *   **Theming**: Choose between a `classic` green-on-black Matrix theme or a `colorful` theme that uses a wider palette.
 *   **Color Intensity Control**: Fine-tune the brightness of the trails. Options include `dim`, `normal` (default), and `bright`. This interacts with the chosen theme.
 *   **Character Set Cycling**: Each rain drop can use a different set of characters, randomly chosen from Latin characters (letters, numbers, common symbols), Japanese Katakana, or miscellaneous symbols/arrows, adding visual diversity.
+*   **Robust Character Rendering**: Utilizes the `wcwidth` library to correctly handle characters of varying display widths (e.g., East Asian characters, symbols). This prevents visual misalignments and artifacts (like the 'wave' effect) ensuring smoother animation across diverse character sets and terminals.
 *   **Expanded Color Palette (for 'colorful' theme)**: The `colorful` theme utilizes a variety of colors like blues, cyans, magentas, and yellows, in addition to greens.
 *   **Dynamic Terminal Resizing**: The animation attempts to adapt to your terminal's dimensions.
 *   **Cursor Hiding**: The terminal cursor is hidden during animation for a cleaner look and restored on exit.
 *   **Improved Animation Consistency**: More consistent animation pacing, especially at very high speed settings.
+
+## Requirements
+
+*   Python 3.x
+*   The `wcwidth` library. You can install it using `uv` (or `pip`):
+    ```bash
+    uv add wcwidth
+    ```
+    (If you don't have `uv`, you can use: `pip install wcwidth`)
 
 ## Usage
 
