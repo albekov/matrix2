@@ -1,8 +1,8 @@
 import argparse
 import os
 import random
-import time
 import sys
+import time
 
 
 def main():
