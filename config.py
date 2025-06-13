@@ -98,6 +98,18 @@ def parse_arguments():
         default=None,
         help="Manually set terminal height. Overrides automatic detection. Requires --width to be set as well."
     )
+    parser.add_argument(
+        "--depth_effect_strength",
+        type=float,
+        default=0.5,
+        help="Controls the intensity of the depth effect (e.g., dimming) based on z_position (0.0 to 1.0). Default: 0.5"
+    )
+    parser.add_argument(
+        "--rotation_speed",
+        type=float,
+        default=0.1,
+        help="Controls the speed of the rotation effect. Positive for clockwise, negative for counter-clockwise, 0 for no rotation. Default: 0.1"
+    )
     args = parser.parse_args()
 
     if not (0 < args.speed):
@@ -137,5 +149,11 @@ def parse_arguments():
        (args.height is not None and args.width is None):
         print("Error: Both --width and --height must be provided if one is specified.")
         sys.exit(1)
+
+    if not (0.0 <= args.depth_effect_strength <= 1.0):
+        print("Error: Depth effect strength must be between 0.0 and 1.0 inclusive.")
+        return None
+
+    # No specific validation for rotation_speed beyond type checking by argparse
 
     return args

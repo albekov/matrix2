@@ -1,3 +1,4 @@
+import math
 import random
 import sys
 import time
@@ -9,9 +10,9 @@ def initialize_animation_parameters(width, height, args):
     # Use DEFAULT_CHAR_SETS from config.py
     chars = DEFAULT_CHAR_SETS
 
-    # Each column stores (y_position, char_set_index)
-    # Initialize columns with a random character set index for each column
-    columns = [(0, random.randrange(len(chars))) for _ in range(width)]
+    # Each column stores (y_position, char_set_index, z_position)
+    # Initialize columns with a random character set index and z_position for each column
+    columns = [(0, random.randrange(len(chars)), random.randint(0, 10)) for _ in range(width)]
 
     final_theme_colors = {}
 
@@ -75,38 +76,37 @@ def initialize_animation_parameters(width, height, args):
 def update_column_states(columns, width, height, density, trail_length, num_char_sets):
     """Updates the state of each column for the next frame."""
     for i in range(width):
-        y_position, char_set_index = columns[i]
+        y_position, char_set_index, z_position = columns[i]  # Unpack z_position
         if y_position == 0:
             if random.random() < density:
-                # Start a new drop with a randomly selected char set for this column
-                columns[i] = (1, random.randrange(num_char_sets))
+                # Start a new drop with a randomly selected char set and z_position for this column
+                columns[i] = (1, random.randrange(num_char_sets), random.randint(0, 10))
+            # If no new drop, z_position remains unchanged (implicitly, as columns[i] isn't updated here)
         else:
             y_position += 1
             # Reset column if trail is off screen
             if y_position - trail_length > height:
-                columns[i] = (0, char_set_index) # Keep char_set_index until new drop
+                columns[i] = (0, char_set_index, z_position) # Keep char_set_index and z_position until new drop
             else:
-                columns[i] = (y_position, char_set_index)
+                columns[i] = (y_position, char_set_index, z_position) # Preserve z_position
     return columns
 
 
-def render_frame_buffer(columns, width, height, char_sets, active_colors, args):
+def render_frame_buffer(columns, width, height, char_sets, active_colors, args, current_rotation_angle):
     """Renders the current frame into a buffer."""
     frame_buffer = []
-    for y in range(1, height + 1):
-        char_list = []
+    for y_coord in range(1, height + 1): # Renamed y to y_coord to avoid conflict with column's y_position
+        char_list = [" "] * width  # Initialize row with spaces for horizontal shift
         for x in range(width):
-            trail_head_y, char_set_index = columns[x]
+            trail_head_y, char_set_index, z_position = columns[x] # Unpack z_position
             # Ensure char_set_index is valid for char_sets
             if not (0 <= char_set_index < len(char_sets)): # Defensive check
-                # This case should ideally not happen if columns are initialized correctly
-                # and num_char_sets in update_column_states is len(char_sets)
-                char_list.append(" ")
-                continue
+                continue # Skip if invalid, char_list[x] remains " "
 
             current_char_set = char_sets[char_set_index]
-            if trail_head_y > 0 and trail_head_y - args.trail_length < y <= trail_head_y:
-                distance_from_head = trail_head_y - y
+            # Check if the current y_coord is part of this column's trail
+            if trail_head_y > 0 and trail_head_y - args.trail_length < y_coord <= trail_head_y:
+                distance_from_head = trail_head_y - y_coord
 
                 original_char = random.choice(current_char_set)
 
@@ -127,58 +127,84 @@ def render_frame_buffer(columns, width, height, char_sets, active_colors, args):
                         if "BRIGHT_" not in name and name not in ["WHITE", "RESET"] and name in AnsiColors.__members__
                     ]
                     if not available_base_colors:
-                        # Fallback if no suitable base colors are found in active_colors (e.g. if user specified only WHITE)
-                         if "GREEN" in active_colors : base_color_name = "GREEN" # Explicitly check if GREEN is there
-                         # else: it remains "GREEN", and we hope active_colors['GREEN'] exists or a key error occurs
+                         if "GREEN" in active_colors : base_color_name = "GREEN"
                     else:
                         base_color_name = random.choice(available_base_colors)
 
-                # Ensure selected base_color_name and its bright variant exist in active_colors
-                # If not, default to WHITE or the base_color_name itself to avoid KeyError
-                actual_base_color = active_colors.get(base_color_name, AnsiColors.GREEN.value) # Fallback to Green enum value
+                actual_base_color = active_colors.get(base_color_name, AnsiColors.GREEN.value)
                 bright_variant_key = f"BRIGHT_{base_color_name}"
                 actual_bright_color = active_colors.get(bright_variant_key, actual_base_color)
+                color_white = active_colors.get("WHITE", AnsiColors.WHITE.value)
 
-
-                color_white = active_colors.get("WHITE", AnsiColors.WHITE.value) # Fallback to White enum value
-
+                c_head_orig, c_seg1_orig, c_seg2_orig = color_white, actual_bright_color, actual_base_color # Default (normal)
                 if args.color_intensity == "dim":
-                    c_head = actual_bright_color
-                    c_seg1 = actual_base_color
-                    c_seg2 = actual_base_color
+                    c_head_orig, c_seg1_orig, c_seg2_orig = actual_bright_color, actual_base_color, actual_base_color
                 elif args.color_intensity == "bright":
-                    c_head = color_white
-                    c_seg1 = color_white
-                    c_seg2 = actual_bright_color
-                else: # normal (default)
-                    c_head = color_white
-                    c_seg1 = actual_bright_color
-                    c_seg2 = actual_base_color
+                    c_head_orig, c_seg1_orig, c_seg2_orig = color_white, color_white, actual_bright_color
+
+                # Refined Perspective (Dimming) using depth_effect_strength
+                depth_influence = (z_position / 10.0) * args.depth_effect_strength
+
+                # Rotation (Horizontal Shift) - z_factor calculation is fine
+                # Using trail_head_y for a more cohesive shift of the entire column drop.
+                # z_position incorporated: further away (larger z) shifts less.
+                # (11 - z_position) / 10.0 makes z=10 shift by 0.1x, z=0 shift by 1.1x (approx)
+                # (height / 2.0 - y_coord) for y-dependent shift (center rows shift less)
+                # Scaled by 0.3 as an arbitrary factor
+                # Shift direction depends on y_coord relative to height/2 and rotation angle
+                y_factor = (height / 2.0 - y_coord) / (height / 2.0) if height > 1 else 0 # Normalized y distance from center
+                z_factor = (11.0 - z_position) / 10.0 # Closer items (smaller z) shift more
+
+                # Simplified horizontal_shift for now, focusing on y and angle.
+                # The subtask asks for: int( (y - height/2) * math.sin(current_rotation_angle) * 0.1 )
+                # Let's use y_coord here for the current character's row.
+                horizontal_shift = int( (y_coord - height/2.0) * math.sin(current_rotation_angle) * 0.2 * z_factor )
+
+                final_x = x + horizontal_shift
+
+                applied_color = c_seg2_orig # Default to the dimmest color
 
                 if distance_from_head == 0: # Head of the trail
-                    char_list.append(f"{c_head}{char_to_render}")
-                elif distance_from_head <= args.bright_length: # Bright part, uses c_seg1
-                    char_list.append(f"{c_seg1}{char_to_render}")
-                else: # Dim part, uses c_seg2
-                    char_list.append(f"{c_seg2}{char_to_render}")
-            else:
-                char_list.append(" ")
+                    if depth_influence > 0.7: # Adjusted threshold
+                        applied_color = c_seg2_orig
+                    elif depth_influence > 0.4: # Adjusted threshold
+                        applied_color = c_seg1_orig
+                    else:
+                        applied_color = c_head_orig
+                elif distance_from_head <= args.bright_length: # Bright part
+                    if depth_influence > 0.6: # Adjusted threshold
+                        applied_color = c_seg2_orig
+                    else:
+                        applied_color = c_seg1_orig
+                # else: Dim part, applied_color is already c_seg2_orig
+
+                if 0 <= final_x < width:
+                    char_list[final_x] = f"{applied_color}{char_to_render}"
+            # If not in trail, char_list[x] remains " " due to prefill
         frame_buffer.append("".join(char_list))
     return frame_buffer
 
 
 def run_animation_loop(args, width, height, char_sets, columns_param, active_theme_colors_param):
     """Runs the main animation loop."""
-    active_colors_dict = active_theme_colors_param # This now contains enum values like "[97m"
-
+    active_colors_dict = active_theme_colors_param
     MIN_EFFECTIVE_SLEEP = 0.005
+    current_rotation_angle = 0.0
 
     while True:
+        actual_sleep_time = max(args.speed, MIN_EFFECTIVE_SLEEP)
+
+        # Update rotation angle using args.rotation_speed
+        current_rotation_angle += args.rotation_speed * actual_sleep_time
+        # Optional: normalize angle if it grows too large, though math.sin handles large angles.
+        # if abs(current_rotation_angle) > 2 * math.pi:
+        #     current_rotation_angle %= (2 * math.pi)
+
         current_columns = update_column_states(
             columns_param, width, height, args.density, args.trail_length, len(char_sets)
         )
         frame_buffer = render_frame_buffer(
-            current_columns, width, height, char_sets, active_colors_dict, args
+            current_columns, width, height, char_sets, active_colors_dict, args, current_rotation_angle
         )
         columns_param = current_columns
 
