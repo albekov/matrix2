@@ -42,6 +42,7 @@ This document outlines specific tasks to improve and enhance the Python-based co
         *   Call `run_animation_loop()` with the prepared data.
         *   Handle `KeyboardInterrupt` around `run_animation_loop()`.
 *   **Expected Outcome:** `main.py` will be more organized, with distinct functions for different responsibilities, making it easier to read, debug, and extend.
+*   **Status: COMPLETED**
 
 ### 1.2. Organize ANSI Color Constants
 *   **Objective:** Make ANSI escape code constants more manageable and descriptive using an `Enum`.
