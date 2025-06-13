@@ -35,6 +35,13 @@ def parse_arguments():
         choices=["dim", "normal", "bright"],
         help="Color intensity for the trail. Choices: dim, normal, bright. Default: normal",
     )
+    parser.add_argument(
+        "--theme",
+        type=str,
+        default="classic",
+        choices=["classic", "colorful"],
+        help="Color theme for the animation. Choices: classic, colorful. Default: classic",
+    )
     args = parser.parse_args()
 
     if not (0 < args.speed):
@@ -66,11 +73,14 @@ def initialize_animation_parameters(width, height, args):
     chars_symbols = "←↑→↓↔↕↖↗↘↙↚↛↜↝↞↟↠↡↢↣↤↥↦↧↨↩↪↫↬↭↮↯↰↱↲↳↴↵↶↷↸↹↺↻↼↽↾↿⇀⇁⇂⇃⇄⇅⇆⇇⇈⇉⇊⇋⇌⇍⇎⇏⇐⇑⇒⇓⇔⇕⇖⇗⇘⇙⇚⇛⇜⇝⇞⇟⇠⇡⇢⇣⇤⇥⇦⇧⇨⇩⇪"
     chars = [chars_latin, chars_katakana, chars_symbols]
 
-    colors = {
+    classic_colors = {
         "WHITE": "\033[97m",
         "BRIGHT_GREEN": "\033[92m",
         "GREEN": "\033[32m",
         "RESET": "\033[0m",
+    }
+    extended_colors = {
+        **classic_colors, # Includes WHITE, BRIGHT_GREEN, GREEN, RESET
         "BLUE": "\033[34m",
         "BRIGHT_BLUE": "\033[94m",
         "CYAN": "\033[36m",
@@ -82,7 +92,7 @@ def initialize_animation_parameters(width, height, args):
     }
     # Each column stores (y_position, char_set_index)
     columns = [(0, random.randrange(len(chars))) for _ in range(width)]
-    return chars, colors, columns
+    return chars, classic_colors, extended_colors, columns
 
 
 def update_column_states(columns, width, height, density, trail_length, num_char_sets):
@@ -103,7 +113,7 @@ def update_column_states(columns, width, height, density, trail_length, num_char
     return columns
 
 
-def render_frame_buffer(columns, width, height, trail_length, char_sets, colors, color_intensity="normal"):
+def render_frame_buffer(columns, width, height, trail_length, char_sets, active_colors, color_intensity="normal", theme="classic"):
     """Renders the current frame into a buffer."""
     frame_buffer = []
     for y in range(1, height + 1):
@@ -114,38 +124,31 @@ def render_frame_buffer(columns, width, height, trail_length, char_sets, colors,
             if trail_head_y > 0 and trail_head_y - trail_length < y <= trail_head_y:
                 distance_from_head = trail_head_y - y
                 char = random.choice(current_char_set)
-                # Select a random color scheme for the trail
-                color_names = list(colors.keys())
-                # Exclude RESET and WHITE from being chosen as a base color
-                available_base_colors = [name for name in color_names if "BRIGHT_" not in name and name not in ["WHITE", "RESET"]]
-                if not available_base_colors: # Fallback if somehow no base colors are suitable
-                    available_base_colors = ["GREEN"]
-                base_color_name = random.choice(available_base_colors)
 
-                bright_variant_exists = f"BRIGHT_{base_color_name}" in colors
+                base_color_name = "GREEN" # Default for classic theme
+                if theme == "colorful":
+                    color_names = list(active_colors.keys())
+                    available_base_colors = [name for name in color_names if "BRIGHT_" not in name and name not in ["WHITE", "RESET"]]
+                    if not available_base_colors:
+                        available_base_colors = ["GREEN"] # Fallback
+                    base_color_name = random.choice(available_base_colors)
 
-                # Define colors based on intensity
+                bright_variant_key = f"BRIGHT_{base_color_name}"
+                bright_variant_exists = bright_variant_key in active_colors
+
+                # Define colors based on intensity and theme
                 if color_intensity == "dim":
-                    # Head: Bright version of base, or base itself if no bright version
-                    # Segment1: Base color
-                    # Segment2: Base color
-                    c_head = colors[f"BRIGHT_{base_color_name}"] if bright_variant_exists else colors[base_color_name]
-                    c_seg1 = colors[base_color_name]
-                    c_seg2 = colors[base_color_name]
+                    c_head = active_colors[bright_variant_key] if bright_variant_exists else active_colors[base_color_name]
+                    c_seg1 = active_colors[base_color_name]
+                    c_seg2 = active_colors[base_color_name]
                 elif color_intensity == "bright":
-                    # Head: White
-                    # Segment1: White
-                    # Segment2: Bright version of base, or white if no bright version
-                    c_head = colors["WHITE"]
-                    c_seg1 = colors["WHITE"]
-                    c_seg2 = colors[f"BRIGHT_{base_color_name}"] if bright_variant_exists else colors["WHITE"]
+                    c_head = active_colors["WHITE"]
+                    c_seg1 = active_colors["WHITE"]
+                    c_seg2 = active_colors[bright_variant_key] if bright_variant_exists else active_colors["WHITE"]
                 else: # normal (default)
-                    # Head: White
-                    # Segment1: Bright version of base, or white if no bright version
-                    # Segment2: Base color
-                    c_head = colors["WHITE"]
-                    c_seg1 = colors[f"BRIGHT_{base_color_name}"] if bright_variant_exists else colors["WHITE"]
-                    c_seg2 = colors[base_color_name]
+                    c_head = active_colors["WHITE"]
+                    c_seg1 = active_colors[bright_variant_key] if bright_variant_exists else active_colors["WHITE"]
+                    c_seg2 = active_colors[base_color_name]
 
                 if distance_from_head == 0: # Head of the trail
                     char_list.append(f"{c_head}{char}")
@@ -161,28 +164,36 @@ def render_frame_buffer(columns, width, height, trail_length, char_sets, colors,
 
 def run_animation_loop(args, width, height, char_sets, colors, columns):
     """Runs the main animation loop."""
+    # Determine which color set to use based on the theme
+    active_colors_dict = extended_colors if args.theme == "colorful" else classic_colors
+
+    MIN_EFFECTIVE_SLEEP = 0.005 # Minimum sleep time for potentially better consistency
+
     while True:
         columns = update_column_states(
             columns, width, height, args.density, args.trail_length, len(char_sets)
         )
         frame_buffer = render_frame_buffer(
-            columns, width, height, args.trail_length, char_sets, colors, args.color_intensity
+            columns, width, height, args.trail_length, char_sets, active_colors_dict, args.color_intensity, args.theme
         )
-        sys.stdout.write("\033[H" + "\n".join(frame_buffer) + colors["RESET"])
+        sys.stdout.write("\033[H" + "\n".join(frame_buffer) + active_colors_dict["RESET"])
         sys.stdout.flush()
-        time.sleep(args.speed)
+
+        actual_sleep_time = max(args.speed, MIN_EFFECTIVE_SLEEP)
+        time.sleep(actual_sleep_time)
 
 
 if __name__ == "__main__":
     args = parse_arguments()
     if args:
         width, height = get_terminal_dimensions(args)
-        chars, colors, columns = initialize_animation_parameters(width, height, args)
+        chars, classic_colors, extended_colors, columns = initialize_animation_parameters(width, height, args)
         try:
             # Hide cursor
             sys.stdout.write("\033[?25l")
-            run_animation_loop(args, width, height, chars, colors, columns)
+            # Pass all color sets to the loop, it will select based on theme
+            run_animation_loop(args, width, height, chars, classic_colors, extended_colors, columns)
         except KeyboardInterrupt:
-            # Show cursor and reset color
-            sys.stdout.write("\033[?25h" + colors["RESET"])
+            # Show cursor and reset color (use classic_colors for reset as it's simpler)
+            sys.stdout.write("\033[?25h" + classic_colors["RESET"])
             print("\nAnimation stopped.")

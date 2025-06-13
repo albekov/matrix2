@@ -7,11 +7,13 @@ This Python script creates a Matrix-like digital rain animation in your console.
 *   **Customizable Animation Speed**: Control how fast the digital rain falls using the `--speed` argument.
 *   **Customizable Column Density**: Adjust the probability of new rain drops appearing in columns with the `--density` argument.
 *   **Customizable Trail Length**: Define the length of the fading trails for each drop using the `--trail-length` argument.
-*   **Color Intensity Control**: Choose the brightness of the rain with the `--color-intensity` argument. Options include `dim`, `normal` (default), and `bright` profiles.
-*   **Expanded Color Palette**: The animation now cycles through a wider variety of colors beyond the classic green, including blues, cyans, magentas, and yellows, in both normal and bright versions for each trail. The head of the trail remains the brightest, creating a dynamic effect.
-*   **Character Set Cycling**: Each rain drop can now use a different set of characters, randomly chosen from Latin characters (letters, numbers, common symbols), Japanese Katakana, or a collection of miscellaneous symbols and arrows. This adds more visual diversity to the animation.
+*   **Theming**: Choose between a `classic` green-on-black Matrix theme or a `colorful` theme that uses a wider palette.
+*   **Color Intensity Control**: Fine-tune the brightness of the trails. Options include `dim`, `normal` (default), and `bright`. This interacts with the chosen theme.
+*   **Character Set Cycling**: Each rain drop can use a different set of characters, randomly chosen from Latin characters (letters, numbers, common symbols), Japanese Katakana, or miscellaneous symbols/arrows, adding visual diversity.
+*   **Expanded Color Palette (for 'colorful' theme)**: The `colorful` theme utilizes a variety of colors like blues, cyans, magentas, and yellows, in addition to greens.
 *   **Dynamic Terminal Resizing**: The animation attempts to adapt to your terminal's dimensions.
-*   **Cursor Hiding**: The terminal cursor is hidden during the animation for a cleaner look and restored on exit.
+*   **Cursor Hiding**: The terminal cursor is hidden during animation for a cleaner look and restored on exit.
+*   **Improved Animation Consistency**: More consistent animation pacing, especially at very high speed settings.
 
 ## Usage
 
@@ -25,25 +27,48 @@ python main.py [OPTIONS]
 
 *   `--speed FLOAT`: Animation speed (delay between frames in seconds).
     *   Default: `0.1`
-    *   Must be a positive number.
+    *   Must be a positive number. A minimum effective sleep time is enforced for stability at very high rates.
 *   `--density FLOAT`: Column density (probability of a column starting a new drop).
     *   Default: `0.075`
     *   Must be between 0 (exclusive) and 1 (inclusive).
 *   `--trail-length INT`: The length of the fading trail.
     *   Default: `10`
     *   Must be greater than 2.
-*   `--color-intensity {dim,normal,bright}`: Color intensity for the trail.
+*   `--theme {classic,colorful}`: Color theme for the animation.
+    *   Default: `classic`
+    *   `classic`: Uses the traditional green and white Matrix color scheme.
+    *   `colorful`: Uses an expanded palette with various colors (greens, blues, cyans, etc.) randomly chosen for different trails.
+*   `--color-intensity {dim,normal,bright}`: Adjusts the brightness levels of the trail segments.
     *   Default: `normal`
-    *   `dim`: Uses dimmer colors for the trail (e.g., bright base color for head, base color for trail).
-    *   `normal`: Standard intensity (e.g., white head, bright base color segment, base color trail).
-    *   `bright`: Uses brighter colors for the trail (e.g., white head, white segment, bright base color trail).
+    *   When `theme` is `classic`:
+        *   `dim`: Trail head is bright green, subsequent segments are green.
+        *   `normal`: Trail head is white, first segment bright green, rest green.
+        *   `bright`: Trail head is white, first segment white, rest bright green.
+    *   When `theme` is `colorful`:
+        *   `dim`: Trail head is a bright version of a random base color, subsequent segments are the base color.
+        *   `normal`: Trail head is white, first segment is a bright version of a random base color, rest is the base color.
+        *   `bright`: Trail head is white, first segment is white, rest is a bright version of a random base color.
 
-## Example
+## Examples
 
-To run the animation with a slightly faster speed, higher density, longer trails, and bright intensity:
+1.  Run with default settings (classic Matrix look):
+    ```bash
+    python main.py
+    ```
 
-```bash
-python main.py --speed 0.08 --density 0.1 --trail-length 15 --color-intensity bright
-```
+2.  Run with a faster speed, higher density, longer trails, and bright intensity using the classic theme:
+    ```bash
+    python main.py --speed 0.08 --density 0.1 --trail-length 15 --color-intensity bright --theme classic
+    ```
+
+3.  Run with the colorful theme and normal intensity:
+    ```bash
+    python main.py --theme colorful --color-intensity normal
+    ```
+
+4.  Run the colorful theme with high density and dim intensity:
+    ```bash
+    python main.py --density 0.15 --theme colorful --color-intensity dim
+    ```
 
 Press `Ctrl+C` to stop the animation.
