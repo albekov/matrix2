@@ -13,3 +13,13 @@
     *   Created `run_animation_loop()` to encapsulate the main animation loop, coordinating calls to update states and render frames.
     *   The main execution block (`if __name__ == "__main__":`) was updated to orchestrate calls to these new functions and handle `KeyboardInterrupt` for graceful exit.
 *   **Outcome:** `main.py` is now more organized, with improved readability and maintainability. This modular structure will facilitate future enhancements and debugging.
+
+## Task 2.1: Optimize String Concatenation
+*   **Date Completed:** YYYY-MM-DD
+*   **Objective:** Improve performance of frame rendering by using `"".join()` instead of repeated string concatenation for rows.
+*   **Summary of Implementation:**
+    *   Identified the `render_frame_buffer()` function in `main.py`.
+    *   Modified the frame rendering loop within this function.
+    *   Instead of building row strings by repeated concatenation (`row_str += ...`), each row is now constructed by appending character segments to a list (`char_list`).
+    *   After processing all characters for a row, `"".join(char_list)` is used to create the final row string.
+*   **Outcome:** Reduced CPU usage and potentially smoother animation, especially on systems where string concatenation is slow or for larger terminal sizes. The change improves the efficiency of frame generation.
