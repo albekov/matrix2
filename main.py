@@ -82,21 +82,21 @@ def render_frame_buffer(columns, width, height, trail_length, chars, colors):
     """Renders the current frame into a buffer."""
     frame_buffer = []
     for y in range(1, height + 1):
-        row_str = ""
+        char_list = []
         for x in range(width):
             trail_head_y = columns[x]
             if trail_head_y > 0 and trail_head_y - trail_length < y <= trail_head_y:
                 distance_from_head = trail_head_y - y
                 char = random.choice(chars)
                 if distance_from_head == 0:
-                    row_str += f"{colors['WHITE']}{char}"
+                    char_list.append(f"{colors['WHITE']}{char}")
                 elif distance_from_head <= 2:
-                    row_str += f"{colors['BRIGHT_GREEN']}{char}"
+                    char_list.append(f"{colors['BRIGHT_GREEN']}{char}")
                 else:
-                    row_str += f"{colors['GREEN']}{char}"
+                    char_list.append(f"{colors['GREEN']}{char}")
             else:
-                row_str += " "
-        frame_buffer.append(row_str)
+                char_list.append(" ")
+        frame_buffer.append("".join(char_list))
     return frame_buffer
 
 
