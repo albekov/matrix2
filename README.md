@@ -16,15 +16,6 @@ This Python script creates a Matrix-like digital rain animation in your console.
 *   **Cursor Hiding**: The terminal cursor is hidden during animation for a cleaner look and restored on exit.
 *   **Improved Animation Consistency**: More consistent animation pacing, especially at very high speed settings.
 
-## Requirements
-
-*   Python 3.x
-*   The `wcwidth` library. You can install it using `uv` (or `pip`):
-    ```bash
-    uv add wcwidth
-    ```
-    (If you don't have `uv`, you can use: `pip install wcwidth`)
-
 ## Usage
 
 To run the script, navigate to its directory and execute:
