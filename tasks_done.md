@@ -64,3 +64,14 @@
     *   The previous global string constants for colors in `main.py` were removed as their roles are now fulfilled by the Enum.
 *   **Reasoning:** Centralizing color definitions in an Enum improves code readability, makes color management easier, and reduces the risk of errors from typos in string literals. It also prepares for more advanced theme customization.
 *   **Outcome:** ANSI color codes are now managed by the `AnsiColors` Enum in `config.py`, leading to cleaner and more maintainable code.
+
+## Task 1.3: Configurable Character Set (via CLI)
+*   **Date Completed:** 2025-06-14
+*   **Objective:** Allow users to specify the characters used in the animation via a command-line argument.
+*   **Summary of Implementation:**
+    *   Added a `--char-set` command-line argument to `config.py`. This argument allows users to provide a string of characters for the animation.
+    *   Included validation in `config.py` to ensure the user-provided character set is not an empty string if the argument is explicitly used.
+    *   Modified `animation_core.py` (`initialize_animation_parameters`, `update_column_states`, `render_frame_buffer`) and `main.py` to use the custom character set if provided. If not, the animation defaults to its standard behavior of cycling through predefined character sets (Latin, Katakana, Symbols).
+    *   The `columns` data structure in `animation_core.py` was updated to store `current_char_set` for each column to support this feature.
+*   **Reasoning:** This feature significantly enhances user customization, allowing for diverse visual themes (e.g., binary rain, numeric rain, or specific symbolic animations) beyond the default character sets.
+*   **Outcome:** Users can now define a specific string of characters to be used in the Matrix rain effect via the `--char-set` CLI option, overriding the default cycling character sets.
