@@ -101,7 +101,117 @@ def parse_arguments():
         default=None,
         help="Manually set terminal height. Overrides automatic detection. Requires --width to be set as well.",
     )
+    parser.add_argument(
+        "--char-set",
+        type=str,
+        default="",  # Empty string by default, to distinguish from no input vs. explicit empty string
+        help="String of characters to use for the rain. Overrides default character cycling. Example: --char-set '01'",
+    )
     args = parser.parse_args()
+
+    if args.char_set == "":  # Check if it's an explicitly provided empty string
+        # This check is a bit tricky because default="" means we need to rely on how parse_args behaves.
+        # If --char-set is NOT provided, args.char_set will be default "".
+        # If --char-set IS provided as --char-set "" or --char-set="", args.char_set will be "".
+        # To distinguish, we check if "--char-set" was in sys.argv and if the value associated was empty.
+        # A simpler way is to change default to None and check if args.char_set == ""
+        # For now, let's assume if args.char_set is "", it was explicitly set to empty by user.
+        # This will be refined if it causes issues.
+        # A common way to check if an arg was supplied is to use a unique default value not normally expected.
+        # Let's refine the default and check:
+        # Change default to a unique marker like a special string or None.
+        # For this implementation, the requirements state: default=""
+        # "If args.char_set is explicitly provided and is an empty string by the user (e.g. --char-set ""), print an error message"
+        # This means we need to check sys.argv directly, as args.char_set will be "" for both default and explicit empty.
+        # This is a common issue with argparse. A better default would be None.
+        # Let's re-evaluate the requirement: "default="" (empty string to distinguish from no input vs. explicit empty string, will handle fallback logic in initialize_animation_parameters)"
+        # This implies that if args.char_set is "", it could be EITHER the default OR explicitly set.
+        # The error should only trigger if EXPLICITLY set to empty.
+        # The prompt for config.py: "If args.char_set is explicitly provided and is an empty string by the user (e.g. --char-set ""), print an error message"
+        # This is best handled by checking if "--char-set" is in sys.argv and its value is empty.
+        # Let's find "--char-set" in sys.argv. If it's there, and the *next* arg (if it exists) is not another option (doesn't start with "-"), then that's its value.
+        # Or, if it's like "--char-set=", then it's empty.
+
+        is_explicitly_empty = False
+        try:
+            idx = sys.argv.index("--char-set")
+            if idx + 1 < len(sys.argv):
+                # Check if it's "--char-set """ or "--char-set=''"
+                if (
+                    sys.argv[idx + 1] == ""
+                    or sys.argv[idx + 1] == "''"
+                    or sys.argv[idx + 1] == '""'
+                ):
+                    is_explicitly_empty = True
+                # Check if it's "--char-set=" (value is part of the same argument)
+                elif sys.argv[idx].endswith("="):  # Handles --char-set=
+                    # if sys.argv[idx] == "--char-set=" (no value after =) then it's empty
+                    if sys.argv[idx] == "--char-set=":
+                        is_explicitly_empty = True
+
+            # If "--char-set" is the last argument, it implies no value was given,
+            # which argparse might treat as needing a value or using default.
+            # If default is "", and it's provided as last arg, args.char_set will be "".
+            # This specific check is for *explicitly providing an empty string*.
+            # e.g. script.py --char-set ""
+
+        except ValueError:
+            # --char-set was not in sys.argv, so it's using the default.
+            pass
+
+        # A more robust check for explicit empty string with argparse:
+        # Change default to a sentinel value (e.g., object()) and then check if
+        # args.char_set is ""
+        # However, sticking to the requirement "default=''"
+        # The problem is `parser.add_argument(..., default="", ...)` means `args.char_set` will be `""`
+        # if the arg is not provided OR if it's provided as `--char-set ""`.
+        # The requirement: "If args.char_set is explicitly provided and is an empty string by the user"
+        # This means we must differentiate.
+        # The easiest way is to set a different default in add_argument, and then if it's "", it was explicit.
+        # Let's adjust the default for parsing and then handle the "not set" logic in animation_core.
+        # Let's change the default here to a unique sentinel to detect if it was provided.
+        # NO, the requirement is "default=''" for add_argument.
+        # "default="" (empty string to distinguish from no input vs. explicit empty string, will handle fallback logic in initialize_animation_parameters)"
+        # This means the distinction happens in initialize_animation_parameters.
+        # So, the error check in parse_arguments should be: if args.char_set is "" AND "--char-set" was actually in sys.argv.
+
+        # Simplest way to check if an option was provided and set to empty:
+        # Check if '--char-set' is in sys.argv. If it is, find its value.
+        # This is getting complicated due to argparse's behavior with default="".
+        # Let's assume for now that if args.char_set is "", it *could* be an explicit empty string.
+        # The prompt: "If args.char_set is explicitly provided and is an empty string by the user (e.g. --char-set ""), print an error message"
+        # This implies we must detect *explicit provision*.
+        # A common pattern is to have `nargs='?'` and `const=""` if `default` is something else,
+        # or to check `sys.argv`.
+
+        # Let's check `sys.argv` for the presence of `--char-set` followed by an empty string.
+        found_char_set_arg = False
+        explicitly_empty = False
+        for i, arg_val in enumerate(sys.argv):
+            if arg_val == "--char-set":
+                found_char_set_arg = True
+                if i + 1 < len(sys.argv) and (
+                    sys.argv[i + 1] == ""
+                    or sys.argv[i + 1] == "''"
+                    or sys.argv[i + 1] == '""'
+                ):
+                    explicitly_empty = True
+                elif arg_val.endswith("="):  # Handles --char-set=
+                    explicitly_empty = True
+                break  # Found the arg
+            elif arg_val.startswith("--char-set="):
+                found_char_set_arg = True
+                if arg_val == "--char-set=":  # --char-set=""
+                    explicitly_empty = True
+                break
+
+        if found_char_set_arg and explicitly_empty and args.char_set == "":
+            # This condition means --char-set was used and an empty string was supplied.
+            print(
+                "Error: Character set cannot be an empty string if explicitly provided."
+            )
+            parser.exit(1)
+        # The default="" will be handled in initialize_animation_parameters to mean "use default sets"
 
     if not (0 < args.speed):
         print("Error: Animation speed must be a positive number.")

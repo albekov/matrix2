@@ -92,6 +92,7 @@ This document outlines specific tasks to improve and enhance the Python-based co
     3.  **Use the Argument:** In `initialize_animation_parameters()` (or equivalent), set the main `chars` variable from `args.char_set` instead of the hardcoded string.
     4.  **Ensure Usage:** Confirm that `random.choice(chars)` in `render_frame_buffer()` (or equivalent) uses this new configurable `chars` variable.
 *   **Expected Outcome:** Users can customize the animation's appearance by providing their own character sets (e.g., binary "01", Katakana, etc.) via the command line.
+*   **Status: COMPLETED**
 
 ## 2. Performance Enhancements
 

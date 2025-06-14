@@ -22,10 +22,12 @@ if __name__ == "__main__":
         # and AnsiColors for theme definitions.
         # It returns:
         # 1. chars (which will be DEFAULT_CHAR_SETS)
-        # 2. final_theme_colors (a dictionary of color strings like {"WHITE": "[97m", ...})
-        # 3. columns (the initialized list of column states)
-        active_char_sets, active_theme_colors, columns_state = (
-            initialize_animation_parameters(width, height, args)
+        # 2. available_char_sets (list of lists of characters, e.g., [['a','b'], ['0','1']])
+        # 3. final_theme_colors (a dictionary of color strings like {"WHITE": "[97m", ...})
+        columns_state, available_char_sets, active_theme_colors = (
+            initialize_animation_parameters(
+                args, width, height
+            )  # Corrected order and return values
         )
 
         try:
@@ -36,9 +38,9 @@ if __name__ == "__main__":
                 args,
                 width,
                 height,
-                active_char_sets,
-                columns_state,
-                active_theme_colors,
+                active_theme_colors,  # This maps to 'colors' in run_animation_loop
+                columns_state,  # This maps to 'columns'
+                available_char_sets,  # This maps to 'available_char_sets'
             )
 
         except KeyboardInterrupt:

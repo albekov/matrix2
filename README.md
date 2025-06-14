@@ -45,6 +45,10 @@ python main.py [OPTIONS]
 *   `--glitch-rate FLOAT`: Probability (0.0 to 1.0) of a character in a trail glitching to another character from its set for a single frame.
     *   Default: `0.0` (no glitches)
     *   Set to a small value like `0.005` or `0.01` for subtle effects.
+*   `--char-set STRING`: String of characters to use for the rain. If provided, this will override the default behavior of cycling through predefined character sets (Latin, Katakana, Symbols).
+    *   Default: `""` (empty string, which means default character cycling is used).
+    *   Example: `--char-set "01"` for binary rain, or `--char-set "アァカサタナハマヤャラワガザダバパ"` for only Katakana.
+    *   Note: If you provide this argument with an empty string (e.g., `--char-set ""`), it will result in an error.
 *   `--base-colors STRING`: Comma-separated list of base color names (e.g., 'BLUE,GREEN,CYAN') to use for the 'colorful' theme. Overrides the default set of all available colors. Invalid names are ignored.
     *   Default: `""` (empty string, uses all available colors like BLUE, CYAN, MAGENTA, YELLOW, GREEN).
     *   Example: `--theme colorful --base-colors "BLUE,MAGENTA"`
@@ -93,6 +97,11 @@ python main.py [OPTIONS]
 6.  Run with a colorful theme using only blue and magenta base colors:
     ```bash
     python main.py --theme colorful --base-colors "BLUE,MAGENTA" --density 0.1
+    ```
+
+7.  Run with a custom character set (e.g., binary):
+    ```bash
+    python main.py --char-set "01" --speed 0.05 --trail-length 12 --theme classic
     ```
 
 Press `Ctrl+C` to stop the animation.
