@@ -1,5 +1,6 @@
 import os
 
+
 def get_terminal_dimensions(args):
     """Gets terminal dimensions or returns fallback values."""
     if args.width is not None and args.height is not None:

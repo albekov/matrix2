@@ -2,6 +2,7 @@ import argparse
 import sys
 from enum import Enum
 
+
 class AnsiColors(Enum):
     WHITE = "[97m"
     BRIGHT_GREEN = "[92m"
@@ -26,10 +27,12 @@ class AnsiColors(Enum):
         # For now, this is simple. Task 4.1 might expand this.
         return f"[{color_name_or_code}m"
 
+
 CHARS_LATIN = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()"
 CHARS_KATAKANA = "ァアィイゥウェエォオカガキギクグケゲコゴサザシジスズセゼソゾタダチヂッツヅテデトドナニヌネノハバパヒビピフブプヘベペホボポマミムメモャヤュユョヨラリルレロヮワヰヱヲンヴヵヶ"
 CHARS_SYMBOLS = "←↑→↓↔↕↖↗↘↙↚↛↜↝↞↟↠↡↢↣↤↥↦↧↨↩↪↫↬↭↮↯↰↱↲↳↴↵↶↷↸↹↺↻↼↽↾↿⇀⇁⇂⇃⇄⇅⇆⇇⇈⇉⇊⇋⇌⇍⇎⇏⇐⇑⇒⇓⇔⇕⇖⇗⇘⇙⇚⇛⇜⇝⇞⇟⇠⇡⇢⇣⇤⇥⇦⇧⇨⇩⇪"
 DEFAULT_CHAR_SETS = [CHARS_LATIN, CHARS_KATAKANA, CHARS_SYMBOLS]
+
 
 def parse_arguments():
     """Parses command-line arguments and validates them."""
@@ -72,31 +75,31 @@ def parse_arguments():
         "--bright-length",
         type=int,
         default=2,
-        help="Length of the 'bright' segment of the trail, following the head (not including the head). Default: 2"
+        help="Length of the 'bright' segment of the trail, following the head (not including the head). Default: 2",
     )
     parser.add_argument(
         "--glitch-rate",
         type=float,
         default=0.0,
-        help="Probability (0.0 to 1.0) of a character glitching per frame. Default: 0.0 (no glitches)"
+        help="Probability (0.0 to 1.0) of a character glitching per frame. Default: 0.0 (no glitches)",
     )
     parser.add_argument(
         "--base-colors",
         type=str,
         default="",
-        help="Comma-separated list of base color names (e.g., 'BLUE,GREEN,CYAN') to use ONLY for the 'colorful' theme. If empty, all available colors will be used. Invalid names are ignored."
+        help="Comma-separated list of base color names (e.g., 'BLUE,GREEN,CYAN') to use ONLY for the 'colorful' theme. If empty, all available colors will be used. Invalid names are ignored.",
     )
     parser.add_argument(
         "--width",
         type=int,
         default=None,
-        help="Manually set terminal width. Overrides automatic detection. Requires --height to be set as well."
+        help="Manually set terminal width. Overrides automatic detection. Requires --height to be set as well.",
     )
     parser.add_argument(
         "--height",
         type=int,
         default=None,
-        help="Manually set terminal height. Overrides automatic detection. Requires --width to be set as well."
+        help="Manually set terminal height. Overrides automatic detection. Requires --width to be set as well.",
     )
     args = parser.parse_args()
 
@@ -112,19 +115,21 @@ def parse_arguments():
 
     if args.bright_length < 0:
         print("Error: Bright length cannot be negative.")
-        return None # Indicates validation failure
+        return None  # Indicates validation failure
 
     # Trail length must be able to accommodate the head (1 char), the bright segment,
     # and at least one dim character.
     # So, trail_length >= bright_length (segment after head) + 1 (head) + 1 (minimum dim character)
     # Which means trail_length >= bright_length + 2
     if args.trail_length < args.bright_length + 2:
-        print(f"Error: Trail length ({args.trail_length}) must be at least bright length ({args.bright_length}) + 2 to accommodate head, bright segment, and at least one dim character.")
-        return None # Indicates validation failure
+        print(
+            f"Error: Trail length ({args.trail_length}) must be at least bright length ({args.bright_length}) + 2 to accommodate head, bright segment, and at least one dim character."
+        )
+        return None  # Indicates validation failure
 
     if not (0.0 <= args.glitch_rate <= 1.0):
         print("Error: Glitch rate must be between 0.0 and 1.0 inclusive.")
-        return None # Indicates validation failure
+        return None  # Indicates validation failure
 
     if args.width is not None and args.width <= 0:
         print("Error: --width must be a positive integer.")
@@ -133,8 +138,9 @@ def parse_arguments():
         print("Error: --height must be a positive integer.")
         sys.exit(1)
 
-    if (args.width is not None and args.height is None) or \
-       (args.height is not None and args.width is None):
+    if (args.width is not None and args.height is None) or (
+        args.height is not None and args.width is None
+    ):
         print("Error: Both --width and --height must be provided if one is specified.")
         sys.exit(1)
 
