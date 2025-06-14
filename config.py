@@ -110,6 +110,12 @@ def parse_arguments():
         default=0.1,
         help="Controls the speed of the rotation effect. Positive for clockwise, negative for counter-clockwise, 0 for no rotation. Default: 0.1"
     )
+    parser.add_argument(
+        "--cylindrical_radius_factor",
+        type=float,
+        default=1.0,
+        help="Factor to adjust the radius of the animation cylinder (e.g., 0.5 for tighter, 1.5 for wider). Default: 1.0"
+    )
     args = parser.parse_args()
 
     if not (0 < args.speed):
@@ -155,5 +161,9 @@ def parse_arguments():
         return None
 
     # No specific validation for rotation_speed beyond type checking by argparse
+
+    if args.cylindrical_radius_factor <= 0.0:
+        print("Error: Cylindrical radius factor must be positive.")
+        return None
 
     return args

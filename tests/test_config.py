@@ -21,6 +21,7 @@ class TestConfig(unittest.TestCase):
             self.assertIsNotNone(args) # Ensure parsing succeeded
             self.assertEqual(args.rotation_speed, 0.1)
             self.assertEqual(args.depth_effect_strength, 0.5)
+            self.assertEqual(args.cylindrical_radius_factor, 1.0) # New default check
 
     def test_valid_custom_values(self):
         """Test parsing of valid custom values for new arguments."""
@@ -31,11 +32,11 @@ class TestConfig(unittest.TestCase):
         ]
         with patch('sys.argv', test_argv):
             args = parse_arguments()
-            self.assertIsNotNone(args) # Ensure parsing succeeded
+            self.assertIsNotNone(args)
             self.assertEqual(args.rotation_speed, 0.25)
             self.assertEqual(args.depth_effect_strength, 0.75)
 
-    @patch('sys.stderr') # Suppress print output during this test
+    @patch('sys.stderr')
     def test_invalid_depth_strength_too_low(self, mock_stderr):
         """Test that depth_effect_strength < 0.0 returns None."""
         test_argv = ['main.py', '--depth_effect_strength', '-0.1']
@@ -43,7 +44,7 @@ class TestConfig(unittest.TestCase):
             args = parse_arguments()
             self.assertIsNone(args)
 
-    @patch('sys.stderr') # Suppress print output during this test
+    @patch('sys.stderr')
     def test_invalid_depth_strength_too_high(self, mock_stderr):
         """Test that depth_effect_strength > 1.0 returns None."""
         test_argv = ['main.py', '--depth_effect_strength', '1.1']
@@ -51,7 +52,7 @@ class TestConfig(unittest.TestCase):
             args = parse_arguments()
             self.assertIsNone(args)
 
-    @patch('sys.stderr') # Suppress print output during this test
+    @patch('sys.stderr')
     def test_valid_depth_strength_edge_cases(self, mock_stderr):
         """Test edge cases for depth_effect_strength (0.0 and 1.0)."""
         test_argv_low = ['main.py', '--depth_effect_strength', '0.0']
@@ -66,6 +67,36 @@ class TestConfig(unittest.TestCase):
             self.assertIsNotNone(args)
             self.assertEqual(args.depth_effect_strength, 1.0)
 
+    # Tests for cylindrical_radius_factor
+    def test_valid_custom_cylindrical_radius_factor(self):
+        """Test parsing of valid custom values for cylindrical_radius_factor."""
+        test_argv_small = ['main.py', '--cylindrical_radius_factor', '0.5']
+        with patch('sys.argv', test_argv_small):
+            args = parse_arguments()
+            self.assertIsNotNone(args)
+            self.assertEqual(args.cylindrical_radius_factor, 0.5)
+
+        test_argv_large = ['main.py', '--cylindrical_radius_factor', '2.0']
+        with patch('sys.argv', test_argv_large):
+            args = parse_arguments()
+            self.assertIsNotNone(args)
+            self.assertEqual(args.cylindrical_radius_factor, 2.0)
+
+    @patch('sys.stderr')
+    def test_invalid_cylindrical_radius_factor_zero(self, mock_stderr):
+        """Test that cylindrical_radius_factor == 0 returns None."""
+        test_argv = ['main.py', '--cylindrical_radius_factor', '0']
+        with patch('sys.argv', test_argv):
+            args = parse_arguments()
+            self.assertIsNone(args)
+
+    @patch('sys.stderr')
+    def test_invalid_cylindrical_radius_factor_negative(self, mock_stderr):
+        """Test that cylindrical_radius_factor < 0 returns None."""
+        test_argv = ['main.py', '--cylindrical_radius_factor', '-1.0']
+        with patch('sys.argv', test_argv):
+            args = parse_arguments()
+            self.assertIsNone(args)
 
 if __name__ == '__main__':
     unittest.main()
