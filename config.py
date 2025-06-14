@@ -116,6 +116,12 @@ def parse_arguments():
         default=1.0,
         help="Factor to adjust the radius of the animation cylinder (e.g., 0.5 for tighter, 1.5 for wider). Default: 1.0"
     )
+    parser.add_argument(
+        "--y_rotation_speed",
+        type=float,
+        default=0.01,
+        help="Controls the speed of rotation around the Y-axis for the 3D rain effect. Default: 0.01"
+    )
     args = parser.parse_args()
 
     if not (0 < args.speed):
@@ -166,4 +172,5 @@ def parse_arguments():
         print("Error: Cylindrical radius factor must be positive.")
         return None
 
+    # No specific validation for y_rotation_speed for now
     return args
