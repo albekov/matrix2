@@ -4,7 +4,13 @@ import time
 
 import wcwidth
 
-from config import DEFAULT_CHAR_SETS, AnsiColors, CHARS_LATIN, CHARS_KATAKANA, CHARS_SYMBOLS
+from config import (
+    CHARS_KATAKANA,
+    CHARS_LATIN,
+    CHARS_SYMBOLS,
+    DEFAULT_CHAR_SETS,
+    AnsiColors,
+)
 
 
 def initialize_animation_parameters(args, width, height):
@@ -12,7 +18,9 @@ def initialize_animation_parameters(args, width, height):
 
     available_char_sets = []
     # Check if args.char_set was provided by the user
-    if args.char_set: # Not None and not empty string (already validated in parse_arguments)
+    if (
+        args.char_set
+    ):  # Not None and not empty string (already validated in parse_arguments)
         chars = list(args.char_set)
         available_char_sets = [chars]
     else:
@@ -20,16 +28,19 @@ def initialize_animation_parameters(args, width, height):
         # Ensure DEFAULT_CHAR_SETS are lists of characters if they aren't already
         available_char_sets = [list(cs) for cs in DEFAULT_CHAR_SETS if cs]
 
-
     # Initialize columns
     # Each column will be a dictionary to store its state, including its current character set
     columns = []
     for _ in range(width):
-        columns.append({
-            "head_y": 0,  # Current y position of the head of the drop
-            "current_char_set": random.choice(available_char_sets) if available_char_sets else list(CHARS_LATIN), # Fallback if empty
-            "trail": [] # Stores characters and their specific attributes for the trail
-        })
+        columns.append(
+            {
+                "head_y": 0,  # Current y position of the head of the drop
+                "current_char_set": random.choice(available_char_sets)
+                if available_char_sets
+                else list(CHARS_LATIN),  # Fallback if empty
+                "trail": [],  # Stores characters and their specific attributes for the trail
+            }
+        )
 
     final_theme_colors = {}
 
@@ -122,32 +133,38 @@ def initialize_animation_parameters(args, width, height):
     return columns, available_char_sets, final_theme_colors
 
 
-def update_column_states(columns, width, height, density, trail_length, available_char_sets):
+def update_column_states(
+    columns, width, height, density, trail_length, available_char_sets
+):
     """Updates the state of each column for the next frame."""
     for i in range(width):
         col_state = columns[i]
-        if col_state["head_y"] == 0: # No active drop in this column
-            if random.random() < density: # Chance to start a new drop
+        if col_state["head_y"] == 0:  # No active drop in this column
+            if random.random() < density:  # Chance to start a new drop
                 col_state["head_y"] = 1
-                col_state["current_char_set"] = random.choice(available_char_sets) if available_char_sets else [' ']
+                col_state["current_char_set"] = (
+                    random.choice(available_char_sets) if available_char_sets else [" "]
+                )
                 # Trail initialization could be done here or in render
         else:
             col_state["head_y"] += 1
             # Reset column if trail is off screen
             # The trail length is visual, head_y is the leading char's position
             if col_state["head_y"] - trail_length > height:
-                col_state["head_y"] = 0 # Reset the drop
+                col_state["head_y"] = 0  # Reset the drop
                 # No need to change current_char_set, it will be picked when new drop starts
     # columns list is modified in place, but returning it is fine.
     return columns
 
 
-def render_frame_buffer(columns, width, height, active_colors, args, available_char_sets, glitch_rate): # Added available_char_sets and glitch_rate
+def render_frame_buffer(
+    columns, width, height, active_colors, args, available_char_sets, glitch_rate
+):  # Added available_char_sets and glitch_rate
     """Renders the current frame into a buffer."""
     frame_buffer = []
-    for y in range(1, height + 1): # Iterate through each row of the terminal
+    for y in range(1, height + 1):  # Iterate through each row of the terminal
         char_list = []
-        for x in range(width): # Iterate through each column
+        for x in range(width):  # Iterate through each column
             col_state = columns[x]
             trail_head_y = col_state["head_y"]
             char_set_for_column = col_state["current_char_set"]
@@ -155,26 +172,28 @@ def render_frame_buffer(columns, width, height, active_colors, args, available_c
             # Determine if a character should be rendered at this (x,y)
             # A character is rendered if it's part of an active trail
             if (
-                trail_head_y > 0 # Is there an active drop?
-                and trail_head_y - args.trail_length < y <= trail_head_y # Is current y within the trail?
+                trail_head_y > 0  # Is there an active drop?
+                and trail_head_y - args.trail_length
+                < y
+                <= trail_head_y  # Is current y within the trail?
             ):
                 distance_from_head = trail_head_y - y
 
                 # Choose a character from the column's specific character set
                 original_char = random.choice(char_set_for_column)
-                if not original_char: # handle empty char set
+                if not original_char:  # handle empty char set
                     original_char = " "
 
-
                 if wcwidth.wcwidth(original_char) != 1:
-                    original_char = " " # Ensure single width
+                    original_char = " "  # Ensure single width
 
                 char_to_render = original_char
 
                 # Apply glitch effect if applicable
                 if glitch_rate > 0 and random.random() < glitch_rate:
                     glitched_char = random.choice(char_set_for_column)
-                    if not glitched_char: glitched_char = " "
+                    if not glitched_char:
+                        glitched_char = " "
                     if wcwidth.wcwidth(glitched_char) == 1:
                         char_to_render = glitched_char
 
@@ -183,9 +202,12 @@ def render_frame_buffer(columns, width, height, active_colors, args, available_c
                     # Filter for base colors (not BRIGHT, not WHITE, not RESET)
                     # that are actually defined in AnsiColors enum and present in active_colors
                     available_base_colors_in_palette = [
-                        name for name, color_val in active_colors.items()
-                        if "BRIGHT_" not in name and name not in ["WHITE", "RESET"]
-                           and name in AnsiColors.__members__ # Ensure it's a valid AnsiColor name
+                        name
+                        for name, color_val in active_colors.items()
+                        if "BRIGHT_" not in name
+                        and name not in ["WHITE", "RESET"]
+                        and name
+                        in AnsiColors.__members__  # Ensure it's a valid AnsiColor name
                     ]
                     if not available_base_colors_in_palette:
                         # Fallback if no suitable base colors are found
@@ -195,16 +217,21 @@ def render_frame_buffer(columns, width, height, active_colors, args, available_c
                             base_color_name = "GREEN"
                         # else: base_color_name remains "GREEN", implies classic-like behavior or error if GREEN not in active_colors
                     else:
-                        base_color_name = random.choice(available_base_colors_in_palette)
+                        base_color_name = random.choice(
+                            available_base_colors_in_palette
+                        )
 
                 # Fetch colors from active_colors, with fallbacks to direct AnsiColor enum values
                 # This ensures that even if a color is missing from active_colors (e.g. due to user filtering),
                 # we try to get a sensible default.
-                actual_base_color = active_colors.get(base_color_name, AnsiColors.GREEN.value)
+                actual_base_color = active_colors.get(
+                    base_color_name, AnsiColors.GREEN.value
+                )
                 bright_variant_key = f"BRIGHT_{base_color_name}"
-                actual_bright_color = active_colors.get(bright_variant_key, actual_base_color)
+                actual_bright_color = active_colors.get(
+                    bright_variant_key, actual_base_color
+                )
                 color_white = active_colors.get("WHITE", AnsiColors.WHITE.value)
-
 
                 if args.color_intensity == "dim":
                     c_head = actual_bright_color
@@ -227,13 +254,18 @@ def render_frame_buffer(columns, width, height, active_colors, args, available_c
                 else:  # Dim part of the trail
                     char_list.append(f"{c_seg2}{char_to_render}")
             else:
-                char_list.append(" ") # Empty space if no character here
+                char_list.append(" ")  # Empty space if no character here
         frame_buffer.append("".join(char_list))
     return frame_buffer
 
 
 def run_animation_loop(
-    args, width, height, colors, columns, available_char_sets # Added available_char_sets
+    args,
+    width,
+    height,
+    colors,
+    columns,
+    available_char_sets,  # Added available_char_sets
 ):
     """Runs the main animation loop."""
     # colors is active_theme_colors_param
@@ -242,22 +274,22 @@ def run_animation_loop(
     MIN_EFFECTIVE_SLEEP = 0.005
 
     while True:
-        columns = update_column_states( # columns is updated in place and also returned
+        columns = update_column_states(  # columns is updated in place and also returned
             columns,
             width,
             height,
             args.density,
             args.trail_length,
-            available_char_sets # Pass available_char_sets
+            available_char_sets,  # Pass available_char_sets
         )
         frame_buffer = render_frame_buffer(
             columns,
             width,
             height,
-            colors, # This is active_theme_colors
+            colors,  # This is active_theme_colors
             args,
-            available_char_sets, # Pass available_char_sets
-            args.glitch_rate # Pass glitch_rate
+            available_char_sets,  # Pass available_char_sets
+            args.glitch_rate,  # Pass glitch_rate
         )
         # columns_param = current_columns # columns is already updated
 

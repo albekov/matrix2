@@ -25,7 +25,9 @@ if __name__ == "__main__":
         # 2. available_char_sets (list of lists of characters, e.g., [['a','b'], ['0','1']])
         # 3. final_theme_colors (a dictionary of color strings like {"WHITE": "[97m", ...})
         columns_state, available_char_sets, active_theme_colors = (
-            initialize_animation_parameters(args, width, height) # Corrected order and return values
+            initialize_animation_parameters(
+                args, width, height
+            )  # Corrected order and return values
         )
 
         try:
@@ -36,9 +38,9 @@ if __name__ == "__main__":
                 args,
                 width,
                 height,
-                active_theme_colors, # This maps to 'colors' in run_animation_loop
-                columns_state,       # This maps to 'columns'
-                available_char_sets  # This maps to 'available_char_sets'
+                active_theme_colors,  # This maps to 'colors' in run_animation_loop
+                columns_state,  # This maps to 'columns'
+                available_char_sets,  # This maps to 'available_char_sets'
             )
 
         except KeyboardInterrupt:

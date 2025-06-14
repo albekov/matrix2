@@ -104,12 +104,12 @@ def parse_arguments():
     parser.add_argument(
         "--char-set",
         type=str,
-        default="", # Empty string by default, to distinguish from no input vs. explicit empty string
-        help="String of characters to use for the rain. Overrides default character cycling. Example: --char-set '01'"
+        default="",  # Empty string by default, to distinguish from no input vs. explicit empty string
+        help="String of characters to use for the rain. Overrides default character cycling. Example: --char-set '01'",
     )
     args = parser.parse_args()
 
-    if args.char_set == "": # Check if it's an explicitly provided empty string
+    if args.char_set == "":  # Check if it's an explicitly provided empty string
         # This check is a bit tricky because default="" means we need to rely on how parse_args behaves.
         # If --char-set is NOT provided, args.char_set will be default "".
         # If --char-set IS provided as --char-set "" or --char-set="", args.char_set will be "".
@@ -137,11 +137,15 @@ def parse_arguments():
             idx = sys.argv.index("--char-set")
             if idx + 1 < len(sys.argv):
                 # Check if it's "--char-set """ or "--char-set=''"
-                if sys.argv[idx+1] == "" or sys.argv[idx+1] == "''" or sys.argv[idx+1] == '""':
+                if (
+                    sys.argv[idx + 1] == ""
+                    or sys.argv[idx + 1] == "''"
+                    or sys.argv[idx + 1] == '""'
+                ):
                     is_explicitly_empty = True
                 # Check if it's "--char-set=" (value is part of the same argument)
-                elif sys.argv[idx].endswith("="): # Handles --char-set=
-                     # if sys.argv[idx] == "--char-set=" (no value after =) then it's empty
+                elif sys.argv[idx].endswith("="):  # Handles --char-set=
+                    # if sys.argv[idx] == "--char-set=" (no value after =) then it's empty
                     if sys.argv[idx] == "--char-set=":
                         is_explicitly_empty = True
 
@@ -186,22 +190,27 @@ def parse_arguments():
         for i, arg_val in enumerate(sys.argv):
             if arg_val == "--char-set":
                 found_char_set_arg = True
-                if i + 1 < len(sys.argv) and (sys.argv[i+1] == "" or sys.argv[i+1] == "''" or sys.argv[i+1] == '""'):
+                if i + 1 < len(sys.argv) and (
+                    sys.argv[i + 1] == ""
+                    or sys.argv[i + 1] == "''"
+                    or sys.argv[i + 1] == '""'
+                ):
                     explicitly_empty = True
-                elif arg_val.endswith("="): # Handles --char-set=
+                elif arg_val.endswith("="):  # Handles --char-set=
                     explicitly_empty = True
-                break # Found the arg
+                break  # Found the arg
             elif arg_val.startswith("--char-set="):
                 found_char_set_arg = True
-                if arg_val == "--char-set=": # --char-set=""
+                if arg_val == "--char-set=":  # --char-set=""
                     explicitly_empty = True
                 break
 
-
         if found_char_set_arg and explicitly_empty and args.char_set == "":
             # This condition means --char-set was used and an empty string was supplied.
-             print("Error: Character set cannot be an empty string if explicitly provided.")
-             parser.exit(1)
+            print(
+                "Error: Character set cannot be an empty string if explicitly provided."
+            )
+            parser.exit(1)
         # The default="" will be handled in initialize_animation_parameters to mean "use default sets"
 
     if not (0 < args.speed):
