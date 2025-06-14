@@ -1,6 +1,7 @@
 import random
 import sys
 import time
+from dataclasses import dataclass # Import dataclass
 
 import wcwidth
 
@@ -11,6 +12,15 @@ from config import (
     DEFAULT_CHAR_SETS,
     AnsiColors,
 )
+
+
+@dataclass
+class ColumnState:
+    """Represents the state of a single column in the animation."""
+
+    head_y: int
+    current_char_set: list[str]
+    trail: list
 
 
 def initialize_animation_parameters(args, width, height):
@@ -29,17 +39,17 @@ def initialize_animation_parameters(args, width, height):
         available_char_sets = [list(cs) for cs in DEFAULT_CHAR_SETS if cs]
 
     # Initialize columns
-    # Each column will be a dictionary to store its state, including its current character set
+    # Each column will use the ColumnState dataclass to store its state
     columns = []
     for _ in range(width):
         columns.append(
-            {
-                "head_y": 0,  # Current y position of the head of the drop
-                "current_char_set": random.choice(available_char_sets)
+            ColumnState(
+                head_y=0,  # Current y position of the head of the drop
+                current_char_set=random.choice(available_char_sets)
                 if available_char_sets
                 else list(CHARS_LATIN),  # Fallback if empty
-                "trail": [],  # Stores characters and their specific attributes for the trail
-            }
+                trail=[],  # Stores characters and their specific attributes for the trail
+            )
         )
 
     final_theme_colors = {}
@@ -139,19 +149,19 @@ def update_column_states(
     """Updates the state of each column for the next frame."""
     for i in range(width):
         col_state = columns[i]
-        if col_state["head_y"] == 0:  # No active drop in this column
+        if col_state.head_y == 0:  # No active drop in this column
             if random.random() < density:  # Chance to start a new drop
-                col_state["head_y"] = 1
-                col_state["current_char_set"] = (
+                col_state.head_y = 1
+                col_state.current_char_set = (
                     random.choice(available_char_sets) if available_char_sets else [" "]
                 )
                 # Trail initialization could be done here or in render
         else:
-            col_state["head_y"] += 1
+            col_state.head_y += 1
             # Reset column if trail is off screen
             # The trail length is visual, head_y is the leading char's position
-            if col_state["head_y"] - trail_length > height:
-                col_state["head_y"] = 0  # Reset the drop
+            if col_state.head_y - trail_length > height:
+                col_state.head_y = 0  # Reset the drop
                 # No need to change current_char_set, it will be picked when new drop starts
     # columns list is modified in place, but returning it is fine.
     return columns
@@ -166,8 +176,8 @@ def render_frame_buffer(
         char_list = []
         for x in range(width):  # Iterate through each column
             col_state = columns[x]
-            trail_head_y = col_state["head_y"]
-            char_set_for_column = col_state["current_char_set"]
+            trail_head_y = col_state.head_y
+            char_set_for_column = col_state.current_char_set
 
             # Determine if a character should be rendered at this (x,y)
             # A character is rendered if it's part of an active trail
